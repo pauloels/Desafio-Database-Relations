@@ -34,36 +34,47 @@ class CreateOrderService {
     const customer = await this.customersRepository.findById(customer_id);
 
     if (!customer) {
-      throw new AppError('Customer does not exists');
+      throw new AppError('Customer not found');
     }
 
-    const findProducts = await this.productsRepository.findAllById(
-      products.map(product => ({ id: product.id })),
-    );
+    const productsIds = products.map(product => {
+      return {
+        id: product.id,
+      };
+    });
 
-    if (!findProducts) {
-      throw new AppError('Product does not exists.');
+    const allProducts = await this.productsRepository.findAllById(productsIds);
+
+    if (allProducts.length !== products.length) {
+      throw new AppError('Product is missing');
     }
 
-    products.forEach(product => {
-      const checkQuantityProduct =
-        findProducts.find(({ id }) => id === product.id)?.quantity || 0;
+    const productsList = allProducts.map(product => {
+      const productList = products.find(p => p.id === product.id);
 
-      if (checkQuantityProduct < product.quantity) {
-        throw new AppError(
-          `Product is not available, quantity in stock are ${product.quantity}`,
-        );
+      if (!productList) {
+        throw new AppError('Product not found');
       }
+
+      if (product.quantity < productList.quantity) {
+        throw new AppError('Product out of stock');
+      }
+
+      return {
+        product_id: product.id,
+        price: product.price,
+        quantity: productList.quantity || 0,
+      };
     });
 
-    const order = await this.ordersRepository.create({
+    const dataOrder = {
       customer,
-      products: products.map(product => ({
-        product_id: product.id,
-        price: findProducts.find(({ id }) => id === product.id)?.price || 0,
-        quantity: product.quantity,
-      })),
-    });
+      products: productsList,
+    };
+
+    await this.productsRepository.updateQuantity(products);
+
+    const order = await this.ordersRepository.create(dataOrder);
 
     return order;
   }

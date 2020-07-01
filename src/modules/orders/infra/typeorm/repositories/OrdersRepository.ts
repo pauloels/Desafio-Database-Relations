@@ -17,7 +17,9 @@ class OrdersRepository implements IOrdersRepository {
       order_products: products,
     });
 
-    return order;
+    const savedOrder = await this.ormRepository.save(order);
+
+    return savedOrder;
   }
 
   public async findById(id: string): Promise<Order | undefined> {

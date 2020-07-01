@@ -51,14 +51,11 @@ class ProductsRepository implements IProductsRepository {
   public async updateQuantity(
     products: IUpdateProductsQuantityDTO[],
   ): Promise<Product[]> {
-    const findProduct = await this.ormRepository.find({
-      where: {
-        id: In(products.map(product => product.id)),
-        // encontra dentro do repositório BD qual é o product, então percorre o products q tem id e quantity e pega o product.id. assim where product.id = id do ormRepository
-      },
-    });
+    const productsId = products.map(product => ({ id: product.id }));
 
-    /** percorre o findproduct q é um product */
+    const foundProduct = await this.findAllById(productsId);
+
+    /** percorre o findproduct q é um product
     const updatedProduct = findProduct.map(product => ({
       ...product, // ele copia todas as info do product ex: id price quantity
       // mas muda o item quantity
@@ -69,10 +66,18 @@ class ProductsRepository implements IProductsRepository {
       // precisa confirmar se o id so products = id do findProduct que é o map product.id se for ? ele pega a quantity || 0
       // ele só subtrai ex: tenho 3 no product e tenho 2 no products vai setar no bd 1
     }));
+*/
 
-    await this.ormRepository.save(updatedProduct);
+    const updatedProducts = foundProduct.map(product => ({
+      ...product,
+      quantity:
+        product.quantity -
+        (products.find(prod => prod.id === product.id)?.quantity || 0),
+    }));
 
-    return updatedProduct;
+    await this.ormRepository.save(updatedProducts);
+
+    return updatedProducts;
   }
 }
 

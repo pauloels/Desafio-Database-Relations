@@ -23,7 +23,7 @@ class Order {
   customer: Customer;
 
   @OneToMany(() => OrdersProducts, ordersProducts => ordersProducts.order, {
-    cascade: true,
+    cascade: ['insert'],
     eager: true,
   })
   order_products: OrdersProducts[];
