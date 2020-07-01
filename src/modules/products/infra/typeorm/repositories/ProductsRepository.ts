@@ -21,21 +21,58 @@ class ProductsRepository implements IProductsRepository {
     price,
     quantity,
   }: ICreateProductDTO): Promise<Product> {
-    // TODO
+    const productsRepository = this.ormRepository.create({
+      name,
+      price,
+      quantity,
+    });
+
+    await this.ormRepository.save(productsRepository);
+
+    return productsRepository;
   }
 
   public async findByName(name: string): Promise<Product | undefined> {
-    // TODO
+    const findProducts = await this.ormRepository.findOne({
+      where: { name },
+    });
+
+    return findProducts;
   }
 
   public async findAllById(products: IFindProducts[]): Promise<Product[]> {
-    // TODO
+    const findAllProductsById = await this.ormRepository.find({
+      where: { products },
+    });
+
+    return findAllProductsById;
   }
 
   public async updateQuantity(
     products: IUpdateProductsQuantityDTO[],
   ): Promise<Product[]> {
-    // TODO
+    const findProduct = await this.ormRepository.find({
+      where: {
+        id: In(products.map(product => product.id)),
+        // encontra dentro do repositório BD qual é o product, então percorre o products q tem id e quantity e pega o product.id. assim where product.id = id do ormRepository
+      },
+    });
+
+    /** percorre o findproduct q é um product */
+    const updatedProduct = findProduct.map(product => ({
+      ...product, // ele copia todas as info do product ex: id price quantity
+      // mas muda o item quantity
+      quantity:
+        // ele seta um valor pegando a quantity do findProduct que é o map product.quantity q vem do ormRepository - a quantity do products q é [id, quantity] que vem do product insomnia
+        product.quantity -
+        (products.find(({ id }) => id === product.id)?.quantity || 0),
+      // precisa confirmar se o id so products = id do findProduct que é o map product.id se for ? ele pega a quantity || 0
+      // ele só subtrai ex: tenho 3 no product e tenho 2 no products vai setar no bd 1
+    }));
+
+    await this.ormRepository.save(updatedProduct);
+
+    return updatedProduct;
   }
 }
 
